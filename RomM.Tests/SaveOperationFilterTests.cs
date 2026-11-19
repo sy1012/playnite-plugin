@@ -37,6 +37,25 @@ namespace RomM.Tests
             Assert.Equal(new[] { ours }, Pick(ours, other));
         }
 
+        // RomM renames an upload with its arrival time; Tender's uploads all reach the PC that way.
+        [Theory]
+        [InlineData("Snipperclips [01008E20047DC000] [2026-11-19_03-13-12].zip")]
+        [InlineData("Snipperclips [01008E20047DC000] [2026-07-19 13-41-44-611].zip")]
+        public void A_save_renamed_with_romms_upload_tag_is_this_save(string tagged)
+        {
+            var op = Op(RomMSyncAction.Download, tagged, id: 41);
+
+            Assert.Equal(new[] { op }, Pick(op));
+        }
+
+        [Fact]
+        public void A_bracketed_title_id_is_not_taken_for_an_upload_tag()
+        {
+            Assert.Equal("Snipperclips [01008E20047DC000][JP][v0].zip",
+                SaveOperationFilter.Untagged("Snipperclips [01008E20047DC000][JP][v0] [2026-11-19_03-13-12].zip"));
+            Assert.Equal("Game [2026-11-19].zip", SaveOperationFilter.Untagged("Game [2026-11-19].zip"));
+        }
+
         [Fact]
         public void Another_slot_is_not_applied()
         {

@@ -2,6 +2,7 @@ using RomM.Models.RomM.Save;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace RomM.Saves
 {
@@ -14,9 +15,23 @@ namespace RomM.Saves
     /// local target writes them over each other in whatever order RomM lists them, and the last
     /// one wins whether or not it is the newest. Only an operation on this save's own file name
     /// and slot acts on it; of several such downloads, the newest one does.
+    ///
+    /// RomM tags the name of an uploaded save with when it arrived --
+    /// <c>Game [2026-11-19_03-13-12].zip</c> for an upload of <c>Game.zip</c> -- and keeps a new
+    /// tagged copy per upload, so names are compared with that tag removed.
     /// </summary>
     internal static class SaveOperationFilter
     {
+        // " [2026-11-19_03-13-12]", and the older web player's " [2026-07-19 13-41-44-611]", before the extension.
+        private static readonly Regex UploadTag =
+            new Regex(@"\s*\[\d{4}-\d{2}-\d{2}[ _]\d{2}-\d{2}-\d{2}(-\d{1,3})?\](?=\.[^.\[\]]*$|$)");
+
+        /// <summary>The file name without the tag RomM adds on upload.</summary>
+        public static string Untagged(string fileName)
+        {
+            return string.IsNullOrEmpty(fileName) ? fileName : UploadTag.Replace(fileName, string.Empty);
+        }
+
         public static List<RomMSyncOperation> ForTarget(
             IEnumerable<RomMSyncOperation> operations, int romId, string fileName, string slot,
             out List<RomMSyncOperation> passedOver)
@@ -45,7 +60,7 @@ namespace RomM.Saves
             if (string.IsNullOrEmpty(op.FileName))
                 return op.Action == RomMSyncAction.Upload;
 
-            return string.Equals(op.FileName, fileName, StringComparison.OrdinalIgnoreCase)
+            return string.Equals(Untagged(op.FileName), Untagged(fileName), StringComparison.OrdinalIgnoreCase)
                    && (string.IsNullOrEmpty(op.Slot) || string.Equals(op.Slot, slot, StringComparison.OrdinalIgnoreCase));
         }
 
