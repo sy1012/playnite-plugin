@@ -3,8 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using SharpCompress.Archives;
-using SharpCompress.Archives.Zip;
+using System.IO.Compression;
 
 namespace RomM.Saves
 {
@@ -24,6 +23,10 @@ namespace RomM.Saves
     /// platforms (PS2 memory cards, Switch, PSP, GameCube) upload archives, so they need the
     /// second scheme; using the first would report a conflict on every sync for saves that are in
     /// fact identical.
+    ///
+    /// Uses the framework's own zip support rather than SharpCompress: Playnite ships an older
+    /// SharpCompress, and its packer leaves a plugin's newer copy out of the extension, so a
+    /// SharpCompress call from here fails to load at runtime.
     ///
     /// Cross-checked against argosy-launcher's SaveArchiver.calculateZipHash so both clients agree
     /// on what "unchanged" means. SaveFileHashTests pins its published vector.
@@ -53,15 +56,15 @@ namespace RomM.Saves
         {
             var entries = new List<KeyValuePair<string, string>>();
 
-            using (var archive = ZipArchive.Open(path))
+            using (var archive = ZipFile.OpenRead(path))
             {
                 foreach (var entry in archive.Entries)
                 {
-                    if (entry.IsDirectory)
+                    if (entry.FullName.EndsWith("/") && entry.Length == 0)
                         continue;
 
-                    using (var stream = entry.OpenEntryStream())
-                        entries.Add(new KeyValuePair<string, string>(NormalizeEntryName(entry.Key), Md5Hex(stream)));
+                    using (var stream = entry.Open())
+                        entries.Add(new KeyValuePair<string, string>(NormalizeEntryName(entry.FullName), Md5Hex(stream)));
                 }
             }
 

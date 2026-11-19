@@ -1,10 +1,7 @@
-using SharpCompress.Archives;
-using SharpCompress.Archives.Zip;
-using SharpCompress.Common;
-using SharpCompress.Writers.Zip;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 
 namespace RomM.Saves.Units
@@ -16,11 +13,14 @@ namespace RomM.Saves.Units
     /// Packing is deterministic -- entries sorted, fixed timestamps -- and the hash is RomM's
     /// per-entry zip hash, so it does not depend on the bytes of any one packing. A restore keeps
     /// a zip of what it replaces in <c>backupDir</c> first: the local save may exist nowhere else.
+    ///
+    /// Zips are written and read with the framework's System.IO.Compression, not SharpCompress:
+    /// Playnite ships an older SharpCompress and its packer drops the plugin's own copy.
     /// </summary>
     internal sealed class UnitSaveTarget : SaveTarget
     {
         private const int BackupsKept = 10;
-        private static readonly DateTime FixedEntryTime = new DateTime(1980, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private static readonly DateTimeOffset FixedEntryTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
         private readonly SaveUnit _unit;
         private readonly string _backupDir;
@@ -103,13 +103,13 @@ namespace RomM.Saves.Units
         /// </summary>
         private void Unpack(string zipPath, string dest)
         {
-            using (var archive = ZipArchive.Open(zipPath))
+            using (var archive = ZipFile.OpenRead(zipPath))
             {
-                var files = archive.Entries.Where(e => !e.IsDirectory).ToList();
+                var files = archive.Entries.Where(e => !(e.FullName.EndsWith("/") && e.Length == 0)).ToList();
                 if (files.Count == 0)
                     throw new InvalidDataException("The downloaded save archive holds no files.");
 
-                var names = files.Select(e => SafeEntryName(e.Key)).ToList();
+                var names = files.Select(e => SafeEntryName(e.FullName)).ToList();
                 var rejection = _unit.RejectEntries(names);
                 if (rejection != null)
                     throw new InvalidDataException("The downloaded save archive is not laid out for this game: " + rejection);
@@ -118,8 +118,9 @@ namespace RomM.Saves.Units
                 {
                     var target = Path.Combine(dest, names[i].Replace('/', Path.DirectorySeparatorChar));
                     Directory.CreateDirectory(Path.GetDirectoryName(target));
+                    using (var input = files[i].Open())
                     using (var output = File.Create(target))
-                        files[i].WriteTo(output);
+                        input.CopyTo(output);
                 }
             }
         }
@@ -172,13 +173,15 @@ namespace RomM.Saves.Units
 
         internal static void Pack(IEnumerable<UnitEntry> entries, string path)
         {
-            using (var stream = File.Create(path))
-            using (var writer = new ZipWriter(stream, new ZipWriterOptions(CompressionType.Deflate)))
+            using (var archive = ZipFile.Open(path, ZipArchiveMode.Create))
             {
                 foreach (var entry in entries.OrderBy(e => e.EntryName, StringComparer.Ordinal))
                 {
+                    var zipEntry = archive.CreateEntry(entry.EntryName, CompressionLevel.Optimal);
+                    zipEntry.LastWriteTime = FixedEntryTime;
                     using (var source = File.OpenRead(entry.FilePath))
-                        writer.Write(entry.EntryName, source, FixedEntryTime);
+                    using (var target = zipEntry.Open())
+                        source.CopyTo(target);
                 }
             }
         }
