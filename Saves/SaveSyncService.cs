@@ -121,11 +121,22 @@ namespace RomM.Saves
                         return outcome;
                     }
 
-                    // Negotiate may surface operations for saves we didn't report (e.g. created on another
-                    // device). We only resolved a local path for THIS game, so apply only its operations;
-                    // other ROMs are handled when their own games sync.
+                    // Negotiate answers for every save RomM holds for this ROM; only the ones on this
+                    // save's own file name and slot act on the one local save resolved here. See
+                    // SaveOperationFilter for why the rest must not be applied to it.
                     var operations = negotiation.Operations ?? new List<RomMSyncOperation>();
                     foreach (var op in operations.Where(o => o.RomId == romId))
+                        Logger.Info($"[SaveSync] {game.Name}: RomM answers {SaveOperationFilter.Describe(op)}.");
+
+                    var chosen = SaveOperationFilter.ForTarget(operations, romId, target.FileName, target.Slot,
+                        out var passedOver);
+                    foreach (var op in passedOver)
+                    {
+                        Logger.Info($"[SaveSync] {game.Name}: leaving {SaveOperationFilter.Describe(op)} alone; " +
+                                    $"this game's save is '{target.FileName}' in slot {target.Slot}.");
+                    }
+
+                    foreach (var op in chosen)
                     {
                         ApplyOperation(op, deviceId, negotiation.SessionId, target, outcome, cancellationToken);
                     }
