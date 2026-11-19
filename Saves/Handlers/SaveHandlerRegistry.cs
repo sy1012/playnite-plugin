@@ -16,6 +16,9 @@ namespace RomM.Saves.Handlers
             : this(new ISaveHandler[]
             {
                 new RetroArchSaveHandler(),
+                new EdenSaveHandler(),
+                new CemuSaveHandler(),
+                new Rpcs3SaveHandler(),
             })
         {
         }

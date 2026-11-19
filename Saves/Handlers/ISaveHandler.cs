@@ -51,6 +51,15 @@ namespace RomM.Saves.Handlers
         /// <summary>The ROM's path with Playnite's variables already expanded.</summary>
         public string ContentPath { get; set; }
 
+        /// <summary>
+        /// Where a save of several files keeps a zip of what a restore replaces, before replacing
+        /// it: the local save may exist nowhere else.
+        /// </summary>
+        public string BackupDirectory { get; set; }
+
+        /// <summary>The roaming AppData folder; null means the real one. Set by tests.</summary>
+        public string AppDataDir { get; set; }
+
         public ILogger Logger { get; set; }
     }
 }

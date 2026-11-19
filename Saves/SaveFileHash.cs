@@ -100,6 +100,18 @@ namespace RomM.Saves
         }
 
         /// <summary>
+        /// The digest <see cref="ZipHexFile"/> would produce for an archive of these entries
+        /// (archive name → file on disk), without building it.
+        /// </summary>
+        public static string EntriesAsZipHex(IEnumerable<KeyValuePair<string, string>> entries)
+        {
+            var hashed = new List<KeyValuePair<string, string>>();
+            foreach (var entry in entries)
+                hashed.Add(new KeyValuePair<string, string>(NormalizeEntryName(entry.Key), Md5HexFile(entry.Value)));
+            return Combine(hashed);
+        }
+
+        /// <summary>
         /// Zip entry names are '/'-separated by specification. Windows paths are not, so a name
         /// derived from the filesystem has to be normalised here or the digest silently diverges
         /// from what every other client computes for the very same save.

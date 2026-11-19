@@ -25,8 +25,7 @@ namespace RomM.Saves
     /// the session complete. Conflicts are resolved most-recent-wins.
     ///
     /// Where a save lives, and whether it is one file or a packed directory, is the business of
-    /// an <see cref="ISaveHandler"/>; this class only moves bytes. RetroArch is the handler that
-    /// exists today.
+    /// an <see cref="ISaveHandler"/>; this class only moves bytes.
     /// </summary>
     internal class SaveSyncService
     {
@@ -480,6 +479,7 @@ namespace RomM.Saves
                 EmulatorInstallDir = PlaynitePath.Resolve(_romM.Playnite, resolution.Emulator.InstallDir),
                 Profile = resolution.Profile,
                 ContentPath = _romM.Playnite.ExpandGameVariables(game, contentPath),
+                BackupDirectory = Path.Combine(_romM.GetPluginUserDataPath(), "SaveBackups", game.Id.ToString()),
                 Logger = Logger,
             });
 

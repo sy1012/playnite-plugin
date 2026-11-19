@@ -59,7 +59,20 @@ namespace RomM.Saves.Handlers
                 // it would land beside the core folders instead of inside the right one, where
                 // RetroArch never looks, and the game would start over on a save that is present.
                 var coreRoot = RetroArchConfig.ResolveCoreFolderRoot(cfg, request.ContentPath, baseDir);
-                var coreName = MatchExistingCoreFolder(coreRoot, ResolveCoreName(request.Profile));
+                var profileCore = ResolveCoreName(request.Profile);
+                var coreName = MatchExistingCoreFolder(coreRoot, profileCore);
+
+                // The Dolphin core keeps GameCube and Wii saves in a Dolphin user folder of its
+                // own, not in a <rom>.srm. A disc of another system (a PSP .iso) reads as no
+                // GameCube or Wii disc and falls through to the .srm below.
+                bool dolphinCore = profileCore != null && profileCore.IndexOf("dolphin", StringComparison.OrdinalIgnoreCase) >= 0;
+                if (dolphinCore || (profileCore == null && DolphinSaves.LooksLikeDisc(request.ContentPath)))
+                {
+                    var dolphin = DolphinSaves.Resolve(
+                        DolphinUserDir(saveRoot, coreRoot, coreName), request.ContentPath, request.BackupDirectory, request.Logger);
+                    if (dolphin != null || dolphinCore)
+                        return dolphin;
+                }
 
                 var expectedPath = RetroArchConfig.ResolveSaveFilePath(cfg, request.ContentPath, coreName, baseDir);
                 if (string.IsNullOrEmpty(expectedPath))
@@ -149,6 +162,20 @@ namespace RomM.Saves.Handlers
             {
                 return coreName;
             }
+        }
+
+        /// <summary>
+        /// The Dolphin core's user folder: <c>dolphin-emu/User</c> in the save directory, or in the
+        /// core's own folder of it where only that one exists.
+        /// </summary>
+        internal static string DolphinUserDir(string saveRoot, string coreRoot, string coreName)
+        {
+            var candidates = new List<string>();
+            if (!string.IsNullOrEmpty(saveRoot))
+                candidates.Add(Path.Combine(saveRoot, "dolphin-emu", "User"));
+            if (!string.IsNullOrEmpty(coreRoot) && !string.IsNullOrEmpty(coreName))
+                candidates.Add(Path.Combine(coreRoot, coreName, "dolphin-emu", "User"));
+            return candidates.FirstOrDefault(Directory.Exists) ?? candidates.FirstOrDefault();
         }
 
         private static string FindConfig(string installDir)

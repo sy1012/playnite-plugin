@@ -25,6 +25,31 @@ This plugin allows you to import your RomM library into Playnite. It queries the
 > [!WARNING]
 > The plugin requires a RomM instance set up with IGDB API credentials, otherwise it won't work. You can find more information on how to generate and set credentials in the [docs](https://docs.romm.app/latest/Getting-Started/Generate-API-Keys/).
 
+# Save sync
+
+With save sync on, a game's save is downloaded from RomM before it launches and uploaded after you
+play. Saves are filed in RomM by game, the `autosave` slot and file name, and laid out the way
+[Tender](https://github.com/sy1012/romm-tender) (Steam Deck) and Argosy lay them, so the same save
+moves between those clients and this one.
+
+| Emulator | Save | Uploaded as |
+| --- | --- | --- |
+| RetroArch | the core's battery save | `<rom>.srm` |
+| RetroArch, Dolphin core — GameCube | the game's `.gci` files in the GCI folder of slot A (`dolphin-emu/User/GC/<region>/Card A`) | `<rom>.zip`, flat |
+| RetroArch, Dolphin core — Wii | `dolphin-emu/User/Wii/title/<high>/<low>` | `<rom>.zip`, under `<low>/` |
+| Eden | `nand/user/save/0000000000000000/<current user>/<application id>` | `<rom>.zip`, under `<application id>/` |
+| Cemu | `<mlc>/usr/save/<high>/<low>` | `<rom>.zip`, under `<low>/` |
+| RPCS3 | every `dev_hdd0/home/<user>/savedata` folder starting with the title id | `<rom>.zip`, each folder at the top |
+
+The id a save is keyed by is read from the game file: a Switch `[01…]` file-name tag or NSP ticket, a
+Wii U `.wua` or a dump's `code/app.xml`, a PS3 folder dump's `PARAM.SFO`, `.pkg` header or ISO, and a
+GameCube/Wii disc header (ISO, GCM, CISO, GCZ, WBFS, WIA, RVZ). A game whose id cannot be read is
+skipped and the reason logged. RPCS3 needs exactly one user account; Eden needs a user profile; a
+GameCube raw memory card is shared by every game and is not synced.
+
+Before a downloaded save replaces a save of several files, the plugin keeps a zip of the one it
+replaces in its data folder under `SaveBackups\<game>` (the last 10 per game).
+
 # Installation
 
 To install and configure the RomM Playnite plugin, check out the [Installation Guide][docs-installation-guide]
