@@ -102,7 +102,7 @@ namespace RomM.Tests
             var resolution = SaveEmulatorResolver.Resolve(Handlers, new[]
             {
                 FromAction(Dolphin()),
-                FromMapping(new Emulator { Id = Guid.NewGuid(), Name = "PCSX2" }),
+                FromMapping(new Emulator { Id = Guid.NewGuid(), Name = "DuckStation" }),
             });
 
             Assert.Equal("Dolphin", resolution.Emulator?.Name);

@@ -17,6 +17,9 @@
   <!-- The test project lives under RomM.Tests/ and links source files directly; keep its files
        out of the plugin's default **/*.cs globbing so the plugin build ignores them. -->
   <ItemGroup>
+    <EmbeddedResource Include="Saves\Titles\pcsx2_memcard_filters.json" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Remove="RomM.Tests\**\*.cs" />
     <None Remove="RomM.Tests\**\*" />
   </ItemGroup>

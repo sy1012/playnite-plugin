@@ -19,6 +19,9 @@ namespace RomM.Saves.Handlers
                 new EdenSaveHandler(),
                 new CemuSaveHandler(),
                 new Rpcs3SaveHandler(),
+                new AzaharSaveHandler(),
+                new PpssppSaveHandler(),
+                new Pcsx2SaveHandler(),
             })
         {
         }

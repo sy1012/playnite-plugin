@@ -60,6 +60,9 @@ namespace RomM.Saves.Handlers
         /// <summary>The roaming AppData folder; null means the real one. Set by tests.</summary>
         public string AppDataDir { get; set; }
 
+        /// <summary>The user's Documents folder; null means the real one. Set by tests.</summary>
+        public string DocumentsDir { get; set; }
+
         public ILogger Logger { get; set; }
     }
 }

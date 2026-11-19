@@ -121,6 +121,23 @@ namespace RomM.Saves.Titles
             return result;
         }
 
+        /// <summary>Every key a PARAM.SFO holds, whatever its value's format.</summary>
+        internal static HashSet<string> SfoKeys(byte[] sfo)
+        {
+            var keys = new HashSet<string>(StringComparer.Ordinal);
+            if (sfo == null || sfo.Length < 0x14 || !Starts(sfo, 0, (byte)'P', (byte)'S', (byte)'F'))
+                return keys;
+            int keyTable = BitConverter.ToInt32(sfo, 8);
+            int count = BitConverter.ToInt32(sfo, 16);
+            for (int i = 0; i < count && 0x14 + i * 16 + 16 <= sfo.Length; i++)
+            {
+                var key = CString(sfo, keyTable + BitConverter.ToUInt16(sfo, 0x14 + i * 16), sfo.Length);
+                if (!string.IsNullOrEmpty(key))
+                    keys.Add(key);
+            }
+            return keys;
+        }
+
         private static string CString(byte[] b, int start, int limit)
         {
             if (start < 0 || start >= b.Length)

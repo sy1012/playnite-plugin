@@ -37,7 +37,7 @@ namespace RomM.Tests
         {
             var registry = new SaveHandlerRegistry();
 
-            Assert.Null(registry.Find(new Emulator { Name = "PCSX2", BuiltInConfigId = "pcsx2" }));
+            Assert.Null(registry.Find(new Emulator { Name = "DuckStation", BuiltInConfigId = "duckstation" }));
         }
 
         [Fact]

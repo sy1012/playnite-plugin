@@ -234,15 +234,20 @@ namespace RomM.Saves.Units
 
     /// <summary>
     /// A save that is every folder directly in a shared directory whose name starts with the
-    /// game's id -- a PS3 game's savedata folders. Each sits at the archive's top. A restore
-    /// replaces those folders and nothing else.
+    /// game's id -- a PS3 or PSP game's savedata folders, a PS2 game's folders on a folder memory
+    /// card. Each sits at the archive's top. A folder starting with the id that is not a save (a
+    /// PSP game's installed data) is no member: it is neither packed nor replaced, and a zip that
+    /// would put a folder over it is refused. A restore replaces the members and nothing else.
     /// </summary>
     internal sealed class PrefixFoldersUnit : SaveUnit
     {
-        public PrefixFoldersUnit(string directory, string prefix)
+        private readonly Func<string, bool> _isMemberFolder;
+
+        public PrefixFoldersUnit(string directory, string prefix, Func<string, bool> isMemberFolder = null)
         {
             Directory_ = directory;
             Prefix = prefix;
+            _isMemberFolder = isMemberFolder ?? (_ => true);
         }
 
         public string Directory_ { get; }
@@ -250,7 +255,7 @@ namespace RomM.Saves.Units
 
         public override string StagingParent => Path.GetDirectoryName(Directory_);
 
-        private bool IsMemberName(string name)
+        private bool HasPrefix(string name)
         {
             return !string.IsNullOrEmpty(name) && name.StartsWith(Prefix, StringComparison.OrdinalIgnoreCase);
         }
@@ -259,7 +264,7 @@ namespace RomM.Saves.Units
         {
             if (!Directory.Exists(Directory_))
                 return Enumerable.Empty<string>();
-            return Directory.EnumerateDirectories(Directory_).Where(d => IsMemberName(Path.GetFileName(d)));
+            return Directory.EnumerateDirectories(Directory_).Where(d => HasPrefix(Path.GetFileName(d)) && _isMemberFolder(d));
         }
 
         public override IList<UnitEntry> CurrentEntries()
@@ -274,8 +279,12 @@ namespace RomM.Saves.Units
         {
             foreach (var name in entryNames)
             {
-                if (!IsMemberName(FirstSegment(name)))
+                var top = FirstSegment(name);
+                if (!HasPrefix(top))
                     return $"entry '{name}' is not inside a folder starting with '{Prefix}'";
+                var existing = Path.Combine(Directory_, top);
+                if (Directory.Exists(existing) && !_isMemberFolder(existing))
+                    return $"'{top}' is a folder of the game's that is not a save, and would be replaced";
             }
             return null;
         }
@@ -287,6 +296,53 @@ namespace RomM.Saves.Units
                 .Select(d => new KeyValuePair<string, string>(d, Path.Combine(Directory_, Path.GetFileName(d))))
                 .ToList();
             SwapFolders(replacements, MemberFolders().ToList());
+            return replacements.SelectMany(r => FilesBelow(r.Value)).ToList();
+        }
+    }
+
+    /// <summary>
+    /// A save that is several folders the game owns, each archived under a fixed top-level name --
+    /// a 3DS title's save folder as <c>data/</c> and its extdata folder as <c>extdata/</c>. A
+    /// restore replaces each folder whose root the archive carries and leaves the others, so a zip
+    /// of <c>data/</c> alone keeps the extdata; a top-level name that is no root refuses the zip.
+    /// </summary>
+    internal sealed class ArchiveRootsUnit : SaveUnit
+    {
+        public ArchiveRootsUnit(IDictionary<string, string> roots, string stagingParent)
+        {
+            Roots = new Dictionary<string, string>(roots, StringComparer.OrdinalIgnoreCase);
+            StagingParent = stagingParent;
+        }
+
+        /// <summary>Archive root name → folder on disk.</summary>
+        public IDictionary<string, string> Roots { get; }
+
+        public override string StagingParent { get; }
+
+        public override IList<UnitEntry> CurrentEntries()
+        {
+            return Roots
+                .SelectMany(r => FilesBelow(r.Value).Select(f => new UnitEntry(r.Key + "/" + Relative(r.Value, f), f)))
+                .ToList();
+        }
+
+        public override string RejectEntries(IList<string> entryNames)
+        {
+            foreach (var name in entryNames)
+            {
+                var top = FirstSegment(name);
+                if (top == null || !Roots.ContainsKey(top))
+                    return $"entry '{name}' is not inside one of {string.Join(", ", Roots.Keys.Select(k => k + "/"))}";
+            }
+            return null;
+        }
+
+        public override IList<string> Restore(string stagedDir)
+        {
+            var replacements = Directory.EnumerateDirectories(stagedDir)
+                .Select(d => new KeyValuePair<string, string>(d, Roots[Path.GetFileName(d)]))
+                .ToList();
+            SwapFolders(replacements, Enumerable.Empty<string>());
             return replacements.SelectMany(r => FilesBelow(r.Value)).ToList();
         }
     }
