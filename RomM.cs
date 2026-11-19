@@ -98,6 +98,16 @@ namespace RomM
 
             // Save sync (RetroArch <-> RomM). Reads Settings lazily, so constructing here is safe.
             SaveSync = new SaveSyncService(this);
+            var saveToast = new SaveSyncToast(PlayniteApi.MainView?.UIDispatcher, Logger);
+            SaveSync.Synced = (game, outcome) =>
+            {
+                if (!Settings.NotifyOnSaveSync)
+                    return;
+                var text = SaveSyncMessages.Describe(outcome.Uploaded, outcome.Downloaded, outcome.Conflicts,
+                    outcome.Failed, outcome.Message);
+                if (text != null)
+                    saveToast.Show(SaveSyncMessages.Title(game?.Name), text, outcome.Failed > 0);
+            };
 
             // Initialise the download queue
             downloadsVm = new DownloadQueueViewModel();

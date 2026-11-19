@@ -54,6 +54,9 @@ namespace RomM.Saves
             _romM = romM;
         }
 
+        /// <summary>Called once per finished sync with its outcome, whatever it was.</summary>
+        public Action<Game, SyncOutcome> Synced { get; set; }
+
         private ILogger Logger => _romM.Logger;
         private SettingsViewModel Settings => _romM.Settings;
 
@@ -161,6 +164,15 @@ namespace RomM.Saves
                 Logger.Error(ex, $"[SaveSync] Unexpected failure syncing {game?.Name}.");
                 outcome.Failed++;
                 outcome.Message = ex.Message;
+            }
+
+            try
+            {
+                Synced?.Invoke(game, outcome);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn($"[SaveSync] Reporting the sync of {game?.Name} failed: {ex.Message}");
             }
 
             return outcome;

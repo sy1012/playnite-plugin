@@ -324,6 +324,10 @@
                     <CheckBox Style="{StaticResource SettingCheck}" IsChecked="{Binding EnableSaveSync, Mode=TwoWay}">
                         <TextBlock Text="Sync saves with RomM for RetroArch (Dolphin core included), Eden, Cemu and RPCS3 (downloads the newest save before launch, uploads after play)" TextWrapping="Wrap" />
                     </CheckBox>
+
+                    <CheckBox Style="{StaticResource SettingCheck}" IsChecked="{Binding NotifyOnSaveSync, Mode=TwoWay}">
+                        <TextBlock Text="Show a Windows notification when a save is uploaded or downloaded, or a sync fails" TextWrapping="Wrap" />
+                    </CheckBox>
                 </StackPanel>
             </ScrollViewer>
         </Grid>

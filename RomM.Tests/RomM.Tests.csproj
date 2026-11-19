@@ -70,6 +70,7 @@
     <Compile Include="..\Saves\Handlers\DolphinSaves.cs" Link="Linked\Saves\Handlers\DolphinSaves.cs" />
     <Compile Include="..\Saves\Units\*.cs" LinkBase="Linked\Saves\Units" />
     <Compile Include="..\Saves\SaveOperationFilter.cs" Link="Linked\Saves\SaveOperationFilter.cs" />
+    <Compile Include="..\Saves\SaveSyncMessages.cs" Link="Linked\Saves\SaveSyncMessages.cs" />
     <Compile Include="..\Downloads\ArchiveFormats.cs" Link="Linked\Downloads\ArchiveFormats.cs" />
     <Compile Include="..\Saves\Titles\*.cs" LinkBase="Linked\Saves\Titles" />
   </ItemGroup>

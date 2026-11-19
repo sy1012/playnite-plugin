@@ -246,6 +246,8 @@ namespace RomM.Settings
         // Save sync (RetroArch saves <-> RomM server). DeviceId is assigned by the server on first
         // registration and persisted so this machine keeps the same RomM device across sessions.
         public bool EnableSaveSync { get; set; } = false;
+        // A Windows notification when a sync uploads or downloads a save, or fails.
+        public bool NotifyOnSaveSync { get; set; } = true;
         public string SaveSyncDeviceId { get; set; } = "";
         // The host that issued SaveSyncDeviceId. A device id only means anything on the server that
         // created it, so pointing the plugin at a different RomM has to re-register rather than
@@ -347,6 +349,7 @@ namespace RomM.Settings
                 KeepDeletedGames = savedSettings.KeepDeletedGames;
                 ExcludeGenres = savedSettings.ExcludeGenres;
                 EnableSaveSync = savedSettings.EnableSaveSync;
+                NotifyOnSaveSync = savedSettings.NotifyOnSaveSync;
                 SaveSyncDeviceId = savedSettings.SaveSyncDeviceId;
                 SaveSyncDeviceHost = savedSettings.SaveSyncDeviceHost;
             }
