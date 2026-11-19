@@ -8,7 +8,6 @@ using System.Linq;
 using System.Xml.Serialization;
 using RomM.Games;
 using RomM.Models.RomM.Platform;
-using SharpCompress;
 
 namespace RomM.Settings
 {

@@ -1,8 +1,6 @@
 ﻿using Playnite.SDK;
 using Playnite.SDK.Plugins;
 using RomM.Games;
-using SharpCompress.Archives;
-using SharpCompress.Common;
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -206,29 +204,24 @@ namespace RomM.Downloads
 
         private static bool IsFileCompressed(string filePath)
         {
-            if (Path.GetExtension(filePath).Equals(".iso", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            return ArchiveFactory.IsArchive(filePath, out var type);
+            return ArchiveFormats.Detect(filePath) != ArchiveFormats.Kind.None;
         }
 
 
         // 7-Zip extracts into the output dir and drops absolute paths and ".." components unless -spf
-        // is passed (we never pass it), but the entry names are checked up front anyway so both
-        // extraction paths refuse traversal the same way. Formats SharpCompress cannot open fall back
-        // to 7-Zip's own handling rather than failing a download that used to work.
+        // is passed (we never pass it), but a zip's entry names are checked up front anyway so both
+        // extraction paths refuse traversal the same way. A 7z or rar is left to 7-Zip's own
+        // handling, since nothing here reads their listings.
         private void EnsureEntriesContained(string archivePath, string installDir)
         {
+            if (ArchiveFormats.Detect(archivePath) != ArchiveFormats.Kind.Zip)
+                return;
+
             try
             {
-                using (var archive = ArchiveFactory.Open(archivePath))
+                foreach (var name in ArchiveFormats.ZipEntryNames(archivePath))
                 {
-                    foreach (var entry in archive.Entries.Where(e => !e.IsDirectory))
-                    {
-                        RomMInstallPaths.ResolveWithin(installDir, entry.Key);
-                    }
+                    RomMInstallPaths.ResolveWithin(installDir, name);
                 }
             }
             catch (ArgumentException)
@@ -274,36 +267,20 @@ namespace RomM.Downloads
         }
         private void ExtractArchiveWithEntryProgress(string archivePath, string installDir, DownloadQueueItem item, CancellationToken ct)
         {
-            using (var archive = ArchiveFactory.Open(archivePath))
+            var kind = ArchiveFormats.Detect(archivePath);
+            if (kind != ArchiveFormats.Kind.Zip)
             {
-                var entries = archive.Entries.Where(e => !e.IsDirectory).ToList();
-                int total = entries.Count;
-                int done = 0;
-
-                item.SetProgress(0, Math.Max(1, total), false);
-
-                foreach (var entry in entries)
-                {
-                    ct.ThrowIfCancellationRequested();
-
-                    // Entry names come from the downloaded archive, so they are untrusted: handing a
-                    // "../" or rooted key to ExtractFullPath would write outside installDir. Resolve
-                    // and verify each destination, then copy the entry there ourselves.
-                    var destination = RomMInstallPaths.ResolveWithin(installDir, entry.Key);
-                    Directory.CreateDirectory(Path.GetDirectoryName(destination));
-
-                    using (var entryStream = entry.OpenEntryStream())
-                    using (var file = File.Create(destination))
-                    {
-                        entryStream.CopyTo(file);
-                    }
-
-                    done++;
-                    item.SetProgress(done, total, false);
-                    var pct = total > 0 ? (double)done / total * 100.0 : 100.0;
-                    item.SetStatus(DownloadStatus.Extracting, "Extracting... " + pct.ToString("0") + "%");
-                }
+                throw new NotSupportedException(
+                    $"{Path.GetFileName(archivePath)} is a {kind} archive, which needs 7-Zip: " +
+                    "turn on 7-Zip extraction in the RomM settings and point it at 7z.exe.");
             }
+
+            ArchiveFormats.ExtractZip(archivePath, installDir, (done, total) =>
+            {
+                item.SetProgress(done, Math.Max(1, total), false);
+                var pct = total > 0 ? (double)done / total * 100.0 : 100.0;
+                item.SetStatus(DownloadStatus.Extracting, "Extracting... " + pct.ToString("0") + "%");
+            }, ct);
         }
 
         private void RemoveFromList(DownloadQueueItem item)

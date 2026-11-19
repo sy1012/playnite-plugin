@@ -34,7 +34,7 @@ namespace RomM.Games
 
         // Resolves an untrusted relative path against a trusted root, throwing unless the result stays
         // inside it. Archive entry names are attacker-controlled too, so extraction resolves every
-        // destination through here instead of handing raw keys to SharpCompress' ExtractFullPath.
+        // destination through here before writing it.
         public static string ResolveWithin(string root, string relativePath)
         {
             if (string.IsNullOrEmpty(relativePath))

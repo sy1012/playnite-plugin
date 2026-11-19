@@ -5,7 +5,6 @@ using Playnite.SDK.Plugins;
 using RomM.Downloads;
 using RomM.Models.RomM.Rom;
 using RomM.Settings;
-using SharpCompress.Archives;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -226,17 +225,6 @@ namespace RomM.Games
             }
 
             return null;
-        }
-
-        private static bool IsFileCompressed(string filePath)
-        {
-            // Exclude disk images which aren't handled by sharpcompress
-            if (Path.GetExtension(filePath).Equals(".iso", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            return ArchiveFactory.IsArchive(filePath, out var type);
         }
     }
 }
